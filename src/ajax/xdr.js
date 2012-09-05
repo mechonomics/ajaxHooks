@@ -1,17 +1,18 @@
 (function( jQuery ) {
 
 if ( window.XDomainRequest ) {
-	jQuery.ajaxTransport(function( s ) {
+	jQuery.ajaxTransport(function( s, userOptions, jqXHR ) {
 		if ( s.crossDomain && s.async ) {
 			if ( s.timeout ) {
 				s.xdrTimeout = s.timeout;
 				delete s.timeout;
 			}
 			var xdr;
+                        var progressEvent = {lengthComputable: false, loaded: 0, total: 0};
 			return {
 				send: function( _, complete ) {
 					function callback( status, statusText, responses, responseHeaders ) {
-						xdr.onload = xdr.onerror = xdr.ontimeout = jQuery.noop;
+						xdr.onload = xdr.onerror = xdr.ontimeout = xdr.onprogress = jQuery.noop;
 						xdr = undefined;
 						complete( status, statusText, responses, responseHeaders );
 					}
@@ -20,6 +21,15 @@ if ( window.XDomainRequest ) {
 					xdr.onload = function() {
 						callback( 200, "OK", { text: xdr.responseText }, "Content-Type: " + xdr.contentType );
 					};
+                                        if ( userOptions.progress ) {
+                                                xdr.onprogress = function() {
+
+                                                        progressEvent.loaded = xdr.responseText.length;
+                                                        return userOptions.progress(jqXHR, progressEvent);
+                                                };
+                                        } else {
+                                                xdr.onprogress = function() {};
+                                        }
 					xdr.onerror = function() {
 						callback( 404, "Not Found" );
 					};
